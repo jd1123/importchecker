@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 
 def get_import_dict(path=None, walk=False):
     if path==None:
@@ -41,12 +42,13 @@ def get_import_dict(path=None, walk=False):
     dirs = list(set(dirs))       
     return (i_dict, dirs)
 
-def output_results(import_tuple):
-    for k,v in import_tuple[0].iteritems():
-            print k + " : "
-            for i in v:
-                print "\t"+str(i).rstrip()
-            print
+def output_results(import_tuple, verbose = False, full_import = False):
+    if verbose:
+        for k,v in import_tuple[0].iteritems():
+                print k + " : "
+                for i in v:
+                    print "\t"+str(i).rstrip()
+                print
     
     if len(import_tuple[0]):    
         print str(len(import_tuple[0].keys())) + " files found | " + str(len(import_tuple[1])) + " directories scanned"
@@ -57,29 +59,57 @@ def output_results(import_tuple):
     for v in import_tuple[0].values():
         for i in v:
             depends.add(i.split()[1])
-    if depends:    
-        print "\nYour project depends on: "
-        for i in sorted(depends):
-            print i
+    
+    new_depends = depends.copy()
+    for d in depends:
+        d_s = d.split('.')
+        if len(d_s) > 1:
+            new_depends.remove(d)
+            new_depends.add(d_s[0])
+            
+    if not full_import:
+        depends = new_depends.copy()
+        return depends
+    
+    else:
+        if depends:    
+            print "\nYour project depends on: "
+            for i in sorted(depends):
+                print i
 
             
-    
+def get_requirements(path_to_filename):
+    with open(path_to_filename) as f:
+        for l in f.readlines():
+            yield re.split('==|>=|<=' , l)[0]
 
-def main():
+
+def run_imports(args):
     path = None
-    if len(sys.argv)==2:
-        path = sys.argv[1]
+    verbose = False
+    if len(args)==2:
+        path = args[1]
         (x,y) = get_import_dict(path, walk= True)
-        output_results((x,y))
+        if '-v' in args:
+            verbose=True
         
-    elif len(sys.argv) > 2:
+        output_results((x,y), verbose)
+        
+    elif len(args) > 2:
         print "too many command line arguments"
     
     else:
         path = None
         (x,y) = get_import_dict(path, walk= True)
         output_results((x,y))
-            
+
+def main():
+    depends = run_imports(sys.argv)
+    for l in get_requirements('/home/jw/Documents/dev/python/openspending/requirements.txt'):
+        if l in depends:
+            print str(l) + " is used in your project"
+        else:
+            print str(l) + " is not used in your project"    
         
 if __name__=='__main__':
     status = main()
