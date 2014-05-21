@@ -11,15 +11,17 @@ def get_import_dict(path=None, walk=False):
     
     i_dict = {}
     for f in files:
-        with open(os.path.join(path,f)) as fname:
-            lines = fname.readlines()
-            for l in lines:
-                if l.startswith("import") or l.startswith("from"):
-                    try:
-                        i_dict[os.path.join(path, f)].append(l)
-                    except (KeyError):
-                        i_dict[os.path.join(path,f)] = []
-                        i_dict[os.path.join(path,f)].append(l)
+        if f.split('.')[-1] == "py":
+            
+            with open(os.path.join(path,f)) as fname:
+                lines = fname.readlines()
+                for l in lines:
+                    if l.startswith("import") or l.startswith("from"):
+                        try:
+                            i_dict[os.path.join(path, f)].append(l)
+                        except (KeyError):
+                            i_dict[os.path.join(path,f)] = []
+                            i_dict[os.path.join(path,f)].append(l)
     
     if walk:
         if dirs == []:
@@ -44,13 +46,22 @@ def output_results(import_tuple):
             print k + " : "
             for i in v:
                 print "\t"+str(i).rstrip()
-            print   
+            print
     
     if len(import_tuple[0]):    
         print str(len(import_tuple[0].keys())) + " files found | " + str(len(import_tuple[1])) + " directories scanned"
     else:
         print " 0 files found | " + str(len(import_tuple[1])) + " directories scanned"
-        
+    
+    depends = set()    
+    for v in import_tuple[0].values():
+        for i in v:
+            depends.add(i.split()[1])
+    if depends:    
+        print "\nYour project depends on: "
+        for i in sorted(depends):
+            print i
+
             
     
 
